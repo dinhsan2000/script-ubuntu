@@ -16,6 +16,9 @@ read -p "Enter PHP version to install (e.g., 8.1, 8.2): " PHP_VERSION
 # Prompt for domain name
 read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
 
+# Prompt for MySQL remote user option
+read -p "Do you want to create a MySQL remote user? (y/n): " CREATE_REMOTE_USER
+
 # Get system resources
 TOTAL_RAM=$(grep MemTotal /proc/meminfo | awk '{print $2}')
 TOTAL_RAM_MB=$((TOTAL_RAM / 1024))
@@ -132,15 +135,17 @@ install_mysql() {
     sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$ROOT_PASS';"
     sudo mysql -e "FLUSH PRIVILEGES;"
     
-    echo "Creating MySQL remote user..."
-    REMOTE_USER="remote_user"
-    REMOTE_PASS=$(openssl rand -base64 16)
-    echo "Generated MySQL remote user password: $REMOTE_PASS"
-    echo "remote_user:$REMOTE_PASS" >> mysql_credentials.txt
-    
-    sudo mysql -e "CREATE USER '$REMOTE_USER'@'%' IDENTIFIED BY '$REMOTE_PASS';"
-    sudo mysql -e "GRANT ALL PRIVILEGES ON *.* TO '$REMOTE_USER'@'%' WITH GRANT OPTION;"
-    sudo mysql -e "FLUSH PRIVILEGES;"
+    if [[ "$CREATE_REMOTE_USER" == "y" ]]; then
+        echo "Creating MySQL remote user..."
+        REMOTE_USER="remote_user"
+        REMOTE_PASS=$(openssl rand -base64 16)
+        echo "Generated MySQL remote user password: $REMOTE_PASS"
+        echo "remote_user:$REMOTE_PASS" >> mysql_credentials.txt
+        
+        sudo mysql -e "CREATE USER '$REMOTE_USER'@'%' IDENTIFIED BY '$REMOTE_PASS';"
+        sudo mysql -e "GRANT ALL PRIVILEGES ON *.* TO '$REMOTE_USER'@'%' WITH GRANT OPTION;"
+        sudo mysql -e "FLUSH PRIVILEGES;"
+    fi
     
     echo "MySQL root and remote user credentials saved in mysql_credentials.txt"
 }
